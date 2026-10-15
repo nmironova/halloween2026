@@ -1,0 +1,14 @@
+{
+  "name": "zombie-terminal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline Halloween zombie quest containment terminal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}
