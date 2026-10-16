@@ -93,7 +93,7 @@ function renderState(state) {
   } else if (state.state === 'WIRE_STAGE') {
     elements.headline.innerHTML = 'CONTAINMENT<br>SYSTEM FAILURE';
     elements.subheadline.textContent = 'MANUAL OVERRIDE REQUIRED';
-    elements.instruction.innerHTML = 'RESTORE AUXILIARY CONTROL CIRCUIT<br>SELECT THE DESIGNATED WIRE';
+    elements.instruction.innerHTML = 'MANUAL INTERVENTION REQUIRED<br>IDENTIFY AND DISCONNECT THE DESIGNATED CIRCUIT';
   } else if (patchStage) {
     elements.headline.innerHTML = 'WIRE CUT<br>CONFIRMED';
     elements.subheadline.textContent = 'AUXILIARY CONTROL DISCONNECTED';

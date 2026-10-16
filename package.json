@@ -9,6 +9,7 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
+    "serialport": "^13.0.0",
     "ws": "^8.18.3"
   }
 }

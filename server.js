@@ -2,6 +2,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const { WebSocketServer, WebSocket } = require('ws');
+const { connectSerial } = require('./hardware/serial');
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -233,6 +234,25 @@ setInterval(() => {
 }, TICK_INTERVAL_MS);
 
 if (require.main === module) {
+  const serialPath = process.env.SERIAL_PORT?.trim();
+
+  if (!serialPath) {
+    logEvent('Hardware serial disabled - running in simulation mode');
+  } else {
+    const configuredBaudRate = process.env.SERIAL_BAUD === undefined ? 9600 : Number(process.env.SERIAL_BAUD);
+    const baudRate = Number.isInteger(configuredBaudRate) && configuredBaudRate > 0 ? configuredBaudRate : 9600;
+
+    if (baudRate !== configuredBaudRate) logEvent('Invalid SERIAL_BAUD; using 9600');
+
+    try {
+      const serialConnection = connectSerial({ path: serialPath, baudRate, onEvent: handleHardwareEvent });
+      server.once('close', () => serialConnection.close());
+    } catch (error) {
+      logEvent(`[ARDUINO] unable to initialize serial: ${error.message}`);
+      logEvent('Game Master controls remain available in simulation mode');
+    }
+  }
+
   server.listen(PORT, '0.0.0.0', () => logEvent(`HTTP and WebSocket server listening on http://localhost:${PORT}`));
 }
 
