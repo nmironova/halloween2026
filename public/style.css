@@ -132,7 +132,7 @@ footer b { color: var(--red); }
 .terminal.is-success .timer { background: transparent; }
 .terminal.is-success .alert-strip { background: #122018; color: #8ed4a4; }
 .terminal.is-failure .timer { animation: failure-flicker 1.7s infinite; }
-.terminal.is-patch .pulse-dot { background: var(--amber); }
+.terminal.is-matrix .pulse-dot { background: var(--amber); }
 
 @keyframes pulse { 50% { opacity: .45; box-shadow: 0 0 2px currentColor; } }
 @keyframes failure-flicker { 0%, 93%, 96%, 100% { opacity: 1; } 94%, 97% { opacity: .68; } }

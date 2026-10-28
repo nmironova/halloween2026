@@ -63,15 +63,16 @@ function formatTime(milliseconds) {
 
 function renderState(state) {
   currentState = state;
-  const active = ['COUNTDOWN', 'WIRE_STAGE', 'PATCH_STAGE'].includes(state.state);
-  const patchStage = state.state === 'PATCH_STAGE';
+  const active = ['COUNTDOWN', 'MATRIX_STAGE', 'WIRE_STAGE'].includes(state.state);
+  const matrixStage = state.state === 'MATRIX_STAGE';
+  const wireStage = state.state === 'WIRE_STAGE';
   const success = state.state === 'SUCCESS';
   const failure = state.state === 'FAILURE';
   const stateLabels = {
     IDLE: 'SYSTEM STANDBY',
     COUNTDOWN: 'SYSTEM ARMING',
-    WIRE_STAGE: 'AUXILIARY CONTROL',
-    PATCH_STAGE: 'PATCH CIRCUIT',
+    MATRIX_STAGE: 'CONTROL MATRIX',
+    WIRE_STAGE: 'EMERGENCY PROCEDURE',
     SUCCESS: 'CONTAINMENT SECURE',
     FAILURE: 'CONTAINMENT LOST',
   };
@@ -90,16 +91,16 @@ function renderState(state) {
     elements.headline.innerHTML = 'CONTAINMENT<br>SYSTEM ARMING';
     elements.subheadline.textContent = 'Emergency protocol initializing';
     elements.instruction.innerHTML = 'STAND BY<br>MANUAL OVERRIDE REQUIRED';
-  } else if (state.state === 'WIRE_STAGE') {
-    elements.headline.innerHTML = 'CONTAINMENT<br>SYSTEM FAILURE';
+  } else if (matrixStage) {
+    elements.headline.innerHTML = 'CONTROL MATRIX<br>OFFLINE';
     elements.subheadline.textContent = 'MANUAL OVERRIDE REQUIRED';
-    elements.instruction.innerHTML = 'MANUAL INTERVENTION REQUIRED<br>IDENTIFY AND DISCONNECT THE DESIGNATED CIRCUIT';
-  } else if (patchStage) {
-    elements.headline.innerHTML = 'WIRE CUT<br>CONFIRMED';
-    elements.subheadline.textContent = 'AUXILIARY CONTROL DISCONNECTED';
-    elements.instruction.innerHTML = 'EMERGENCY PATCH CIRCUIT REQUIRED<br>RESTORE THE PATCH CIRCUIT NOW';
+    elements.instruction.innerHTML = 'RECONSTRUCT CONTROL MATRIX<br>CONNECT ALL THREE CONTROL CHANNELS';
+  } else if (wireStage) {
+    elements.headline.innerHTML = 'CONTROL MATRIX<br>VERIFIED';
+    elements.subheadline.textContent = '3/3 CONTROL CHANNELS ONLINE';
+    elements.instruction.innerHTML = 'EMERGENCY CONTAINMENT PROCEDURE<br>IDENTIFY AND DISCONNECT CIRCUIT D5';
   } else if (success) {
-    elements.headline.innerHTML = 'CIRCUIT RESTORED';
+    elements.headline.innerHTML = 'CONTAINMENT<br>STABILIZED';
     elements.subheadline.textContent = 'CONTAINMENT STABILIZED';
     elements.instruction.innerHTML = 'ACCESS GRANTED<br>SECTOR 07 CLEARED FOR ENTRY';
   } else {
@@ -110,19 +111,19 @@ function renderState(state) {
 
   elements.containment.textContent = success ? 'STABILIZED' : failure ? 'BREACHED' : active ? 'AT RISK' : 'STANDBY';
   elements.containment.className = `telemetry-value ${success ? 'good' : active || failure ? 'bad' : ''}`;
-  elements.circuit.textContent = success ? 'RESTORED' : patchStage ? 'PATCH REQUIRED' : active ? 'DEGRADED' : 'OFFLINE';
-  elements.circuit.className = `telemetry-value ${success ? 'good' : patchStage || active ? 'bad' : ''}`;
+  elements.circuit.textContent = success ? 'SECURE' : wireStage ? 'D5 READY' : matrixStage ? 'RECONSTRUCT' : active ? 'AT RISK' : 'OFFLINE';
+  elements.circuit.className = `telemetry-value ${success ? 'good' : active ? 'bad' : ''}`;
   elements.override.textContent = success ? 'GRANTED' : active || failure ? 'REQUIRED' : 'LOCKED';
   elements.override.className = `telemetry-value ${success ? 'good' : active || failure ? 'bad' : ''}`;
   terminal.classList.toggle('is-success', success);
   terminal.classList.toggle('is-failure', failure);
-  terminal.classList.toggle('is-patch', patchStage);
+  terminal.classList.toggle('is-matrix', matrixStage);
   gmState.textContent = state.state;
 
-  setProgress('step-1', state.state === 'WIRE_STAGE', ['PATCH_STAGE', 'SUCCESS'].includes(state.state));
-  setProgress('step-2', patchStage, success);
+  setProgress('step-1', matrixStage, ['WIRE_STAGE', 'SUCCESS'].includes(state.state));
+  setProgress('step-2', wireStage, success);
   setProgress('step-3', success, false);
-  document.getElementById('connector-1').classList.toggle('done', ['PATCH_STAGE', 'SUCCESS'].includes(state.state));
+  document.getElementById('connector-1').classList.toggle('done', ['WIRE_STAGE', 'SUCCESS'].includes(state.state));
   document.getElementById('connector-2').classList.toggle('done', success);
 
   if (state.warning && state.warning !== lastWarning) {
@@ -170,10 +171,12 @@ document.querySelectorAll('.gm-button').forEach((button) => {
     if (button.dataset.event === 'START') {
       if (!roundDurationInput.reportValidity()) return;
       sendEvent('START', { durationMinutes: roundDurationInput.valueAsNumber });
+      toggleGameMaster(false);
       return;
     }
 
     sendEvent(button.dataset.event);
+    toggleGameMaster(false);
   });
 });
 

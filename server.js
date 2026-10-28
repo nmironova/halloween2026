@@ -6,7 +6,7 @@ const { connectSerial } = require('./hardware/serial');
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const DEFAULT_GAME_DURATION_MS = 5 * 60 * 1000;
+const DEFAULT_GAME_DURATION_MS = 10 * 60 * 1000;
 const MAX_GAME_DURATION_MINUTES = 60;
 const START_COUNTDOWN_MS = 3 * 1000;
 const configuredPenaltySeconds = Number(process.env.WRONG_EVENT_PENALTY_SECONDS);
@@ -16,7 +16,7 @@ const WRONG_EVENT_PENALTY_SECONDS = Number.isFinite(configuredPenaltySeconds) &&
 const WRONG_EVENT_PENALTY_MS = WRONG_EVENT_PENALTY_SECONDS * 1000;
 const WARNING_DURATION_MS = 6000;
 const TICK_INTERVAL_MS = 250;
-const STATES = Object.freeze(['IDLE', 'COUNTDOWN', 'WIRE_STAGE', 'PATCH_STAGE', 'SUCCESS', 'FAILURE']);
+const STATES = Object.freeze(['IDLE', 'COUNTDOWN', 'MATRIX_STAGE', 'WIRE_STAGE', 'SUCCESS', 'FAILURE']);
 
 let game = createInitialGame();
 let nextWarningId = 0;
@@ -40,7 +40,7 @@ function logEvent(message) {
 function getState(now = Date.now()) {
   const remainingMs = game.state === 'COUNTDOWN'
     ? Math.max(0, (game.countdownDeadline || now) - now)
-    : ['WIRE_STAGE', 'PATCH_STAGE'].includes(game.state)
+    : ['MATRIX_STAGE', 'WIRE_STAGE'].includes(game.state)
       ? Math.max(0, (game.deadline || now) - now)
       : 0;
 
@@ -83,7 +83,7 @@ function handleHardwareEvent(event, options = {}) {
   }
 
   const normalizedEvent = event.trim().toUpperCase();
-  const activeStates = ['WIRE_STAGE', 'PATCH_STAGE'];
+  const activeStates = ['MATRIX_STAGE', 'WIRE_STAGE'];
 
   switch (normalizedEvent) {
     case 'START':
@@ -105,20 +105,12 @@ function handleHardwareEvent(event, options = {}) {
       logEvent('STATE IDLE: GAME RESET');
       broadcastState();
       break;
+    case 'MATRIX_VERIFIED':
+      if (game.state !== 'MATRIX_STAGE') return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
+      setGameState('WIRE_STAGE', 'CONTROL MATRIX VERIFIED - DISCONNECT CIRCUIT D5');
+      break;
     case 'WIRE_CUT':
       if (game.state !== 'WIRE_STAGE') return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
-      setGameState('PATCH_STAGE', 'RESTORE THE EMERGENCY PATCH CIRCUIT');
-      showWarning('WIRE CUT CONFIRMED - RESTORE EMERGENCY PATCH CIRCUIT');
-      break;
-    case 'WRONG_A':
-    case 'WRONG_C':
-      if (!activeStates.includes(game.state)) return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
-      game.deadline -= WRONG_EVENT_PENALTY_MS;
-      game.updatedAt = Date.now();
-      showWarning(`${normalizedEvent.replace('_', ' ')} - ${WRONG_EVENT_PENALTY_SECONDS} SECOND PENALTY`);
-      break;
-    case 'CIRCUIT_RESTORED':
-      if (game.state !== 'PATCH_STAGE') return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
       game.deadline = null;
       setGameState('SUCCESS', 'CONTAINMENT STABILIZED');
       break;
@@ -224,11 +216,11 @@ setInterval(() => {
   if (game.state === 'COUNTDOWN' && game.countdownDeadline <= now) {
     game.countdownDeadline = null;
     game.deadline = now + game.roundDurationMs;
-    setGameState('WIRE_STAGE', 'CUT THE DESIGNATED WIRE TO BEGIN THE PATCH');
-  } else if (['WIRE_STAGE', 'PATCH_STAGE'].includes(game.state) && game.deadline <= now) {
+      setGameState('MATRIX_STAGE', 'CONTROL MATRIX OFFLINE - RECONSTRUCT CONTROL MATRIX');
+    } else if (['MATRIX_STAGE', 'WIRE_STAGE'].includes(game.state) && game.deadline <= now) {
     game.deadline = null;
     setGameState('FAILURE', 'CONTAINMENT FAILURE - TIME EXPIRED');
-  } else if (['COUNTDOWN', 'WIRE_STAGE', 'PATCH_STAGE'].includes(game.state)) {
+  } else if (['COUNTDOWN', 'MATRIX_STAGE', 'WIRE_STAGE'].includes(game.state)) {
     broadcastState();
   }
 }, TICK_INTERVAL_MS);
