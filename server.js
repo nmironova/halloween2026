@@ -61,11 +61,12 @@ function broadcastState() {
 }
 
 function setGameState(state, message) {
+  const previousState = game.state;
   game.state = state;
   game.message = message;
   game.updatedAt = Date.now();
   game.warning = null;
-  logEvent(`STATE ${state}: ${message}`);
+  logEvent(`STATE ${previousState} -> ${state}: ${message}`);
   broadcastState();
 }
 
@@ -100,11 +101,13 @@ function handleHardwareEvent(event, options = {}) {
       game.countdownDeadline = Date.now() + START_COUNTDOWN_MS;
       setGameState('COUNTDOWN', `${game.roundDurationMs / 60000} MINUTE ROUND ARMING`);
       break;
-    case 'RESET':
+    case 'RESET': {
+      const previousState = game.state;
       game = createInitialGame();
-      logEvent('STATE IDLE: GAME RESET');
+      logEvent(`STATE ${previousState} -> IDLE: GAME RESET`);
       broadcastState();
       break;
+    }
     case 'MATRIX_VERIFIED':
       if (game.state !== 'MATRIX_STAGE') return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
       setGameState('WIRE_STAGE', 'CONTROL MATRIX VERIFIED - DISCONNECT CIRCUIT D5');
@@ -226,6 +229,9 @@ setInterval(() => {
 }, TICK_INTERVAL_MS);
 
 if (require.main === module) {
+  logEvent('STATE IDLE: AWAITING GAME MASTER AUTHORIZATION');
+  logEvent('CONTROL MATRIX MAP: D2 -> D8 | D3 -> D6 | D4 -> D7');
+  logEvent('CUT CIRCUIT: D5 -> CUT WIRE -> GND');
   const serialPath = process.env.SERIAL_PORT?.trim();
 
   if (!serialPath) {

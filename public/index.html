@@ -29,6 +29,54 @@
         </div>
 
         <div class="instruction"><span class="instruction-mark" aria-hidden="true">&gt;_</span><span id="instruction-text">MANUAL OVERRIDE REQUIRED<br>AWAITING GAME MASTER AUTHORIZATION</span></div>
+
+        <section class="circuit-console" id="circuit-console" aria-label="Containment circuit status" hidden>
+          <div class="matrix-board">
+            <div class="circuit-heading"><span>CONTROL MATRIX</span><span id="matrix-overall-status">OFFLINE</span></div>
+            <svg class="matrix-svg" viewBox="0 0 860 220" role="img" aria-labelledby="matrix-title matrix-description">
+              <title id="matrix-title">Three-channel control matrix</title>
+              <desc id="matrix-description">Three disconnected control channels.</desc>
+              <g class="matrix-channel">
+                <text class="pin-label" x="16" y="51">CHANNEL 01</text>
+                <path class="matrix-trace" d="M80 46H273M297 46H530" />
+                <path class="matrix-active-path" d="M80 46H530" />
+                <circle class="matrix-node" cx="80" cy="46" r="5" /><circle class="matrix-node" cx="530" cy="46" r="5" />
+                <text class="pin-label" x="552" y="51">LINK 01</text><text class="channel-status" id="channel-status-1" x="640" y="51">OFFLINE</text>
+              </g>
+              <g class="matrix-channel">
+                <text class="pin-label" x="16" y="117">CHANNEL 02</text>
+                <path class="matrix-trace" d="M80 112H273M297 112H530" />
+                <path class="matrix-active-path" d="M80 112H530" />
+                <circle class="matrix-node" cx="80" cy="112" r="5" /><circle class="matrix-node" cx="530" cy="112" r="5" />
+                <text class="pin-label" x="552" y="117">LINK 02</text><text class="channel-status" id="channel-status-2" x="640" y="117">OFFLINE</text>
+              </g>
+              <g class="matrix-channel">
+                <text class="pin-label" x="16" y="183">CHANNEL 03</text>
+                <path class="matrix-trace" d="M80 178H273M297 178H530" />
+                <path class="matrix-active-path" d="M80 178H530" />
+                <circle class="matrix-node" cx="80" cy="178" r="5" /><circle class="matrix-node" cx="530" cy="178" r="5" />
+                <text class="pin-label" x="552" y="183">LINK 03</text><text class="channel-status" id="channel-status-3" x="640" y="183">OFFLINE</text>
+              </g>
+            </svg>
+            <div class="matrix-footer" id="matrix-footer">MANUAL OVERRIDE REQUIRED / RECONSTRUCT CONTROL MATRIX</div>
+          </div>
+
+          <div class="d5-board" id="d5-board" hidden>
+            <div class="circuit-heading"><span>EMERGENCY CONTAINMENT CIRCUIT</span><span id="d5-status">LIVE / DANGEROUS</span></div>
+            <svg class="d5-svg" viewBox="0 0 860 88" role="img" aria-labelledby="d5-title d5-description">
+              <title id="d5-title">Designated cut circuit to containment bus</title>
+              <desc id="d5-description">A live red circuit runs to the containment bus.</desc>
+              <text class="d5-pin" x="16" y="50">CUT TARGET</text>
+              <path class="d5-wire d5-left" d="M76 44H430" />
+              <path class="d5-wire d5-right" d="M430 44H696" />
+              <path class="d5-flow" d="M76 44H696" />
+              <circle class="d5-spark" cx="430" cy="44" r="9" />
+              <path class="bus-mark" d="M710 26V62M720 32V56M730 38V50" />
+              <text class="bus-label" x="744" y="49">CONTAINMENT BUS</text>
+            </svg>
+            <div class="d5-warning" id="d5-warning">WARNING / LIVE CONTROL CIRCUIT</div>
+          </div>
+        </section>
       </section>
 
       <section class="system-panel" aria-label="System status">
@@ -39,7 +87,7 @@
           <div class="telemetry-item"><span class="telemetry-label">OVERRIDE</span><span class="telemetry-value" id="override-value">LOCKED</span></div>
           <div class="telemetry-item"><span class="telemetry-label">TERMINAL LINK</span><span class="telemetry-value" id="link-value">CONNECTING</span></div>
         </div>
-        <div class="progress-track" aria-label="Quest progress"><span class="progress-step active" id="step-1"><i>01</i> MATRIX</span><span class="progress-connector" id="connector-1"></span><span class="progress-step" id="step-2"><i>02</i> D5 CIRCUIT</span><span class="progress-connector" id="connector-2"></span><span class="progress-step" id="step-3"><i>03</i> STABLE</span></div>
+        <div class="progress-track" aria-label="Quest progress"><span class="progress-step active" id="step-1"><i>01</i> MATRIX</span><span class="progress-connector" id="connector-1"></span><span class="progress-step" id="step-2"><i>02</i> CUT CIRCUIT</span><span class="progress-connector" id="connector-2"></span><span class="progress-step" id="step-3"><i>03</i> STABLE</span></div>
       </section>
 
       <footer><span>EMERGENCY RESPONSE NETWORK <b>•</b> AUTHORIZED PERSONNEL ONLY</span><span id="clock">--:--:--</span></footer>

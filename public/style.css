@@ -82,6 +82,46 @@ h1 { margin: 38px 0 9px; color: #f2f2ed; font-family: var(--sans); font-stretch:
 .instruction { min-height: 45px; display: flex; align-items: center; gap: 12px; color: #e0b06a; text-align: left; font-size: 11px; line-height: 1.7; letter-spacing: .5px; }
 .instruction-mark { color: var(--amber); font-weight: bold; }
 
+.circuit-console { width: min(760px, 100%); margin: 14px auto 0; text-align: left; }
+.circuit-console[hidden], .d5-board[hidden] { display: none; }
+.matrix-board, .d5-board { border-top: 1px solid #343937; border-bottom: 1px solid #343937; background: repeating-linear-gradient(0deg, #0d100f, #0d100f 3px, #101312 4px); }
+.circuit-heading { min-height: 29px; padding: 0 10px; border-bottom: 1px solid #292e2b; display: flex; justify-content: space-between; align-items: center; color: #a7afaa; font-size: 9px; letter-spacing: 1px; }
+.circuit-heading span:last-child { color: #a4534e; }
+.matrix-svg, .d5-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.matrix-svg { max-height: 190px; }
+.pin-label, .channel-status, .d5-pin, .bus-label { font-family: var(--mono); font-size: 15px; letter-spacing: 1px; }
+.pin-label, .d5-pin { fill: #c4c9c5; }
+.matrix-trace { fill: none; stroke: #713b38; stroke-width: 3; stroke-linecap: square; opacity: .7; animation: trace-noise 4.8s steps(1, end) infinite; }
+.matrix-active-path { fill: none; stroke: #8df0ad; stroke-width: 4; stroke-linecap: square; opacity: 0; filter: drop-shadow(0 0 4px #72df9a); }
+.matrix-node { fill: #2b1716; stroke: #9c514b; stroke-width: 2; }
+.channel-status { fill: #a0524c; font-size: 10px; }
+.matrix-footer { min-height: 28px; padding: 7px 10px; border-top: 1px solid #292e2b; color: #a4534e; font-size: 9px; letter-spacing: .8px; }
+.d5-board { margin-top: 10px; }
+.d5-board .circuit-heading span:last-child, .d5-warning { color: #f06459; }
+.d5-svg { max-height: 76px; }
+.d5-wire, .d5-flow { fill: none; stroke: #eb473e; stroke-width: 4; stroke-linecap: square; filter: drop-shadow(0 0 5px #ef4137); }
+.d5-flow { stroke: #ff958c; stroke-width: 2; stroke-dasharray: 9 16; animation: current-flow .7s linear infinite; }
+.d5-spark { fill: #ffd1a0; opacity: 0; }
+.bus-mark { fill: none; stroke: #aeb5b0; stroke-width: 2; }
+.bus-label { fill: #aeb5b0; font-size: 10px; }
+.d5-warning { min-height: 25px; padding: 5px 10px; border-top: 1px solid #292e2b; font-size: 9px; letter-spacing: 1px; }
+.matrix-visual.is-verified .matrix-trace { opacity: .08; }
+.matrix-visual.is-verified .matrix-active-path { opacity: 1; }
+.matrix-visual.is-verified .matrix-node { fill: #8df0ad; stroke: #b7ffca; }
+.matrix-visual.is-verified .channel-status { fill: #80e5a1; }
+.matrix-visual.is-verified + .matrix-footer { color: #80e5a1; }
+.circuit-console.is-verified .matrix-active-path { opacity: 1; }
+.circuit-console.is-verified .matrix-trace { opacity: .08; animation: none; }
+.circuit-console.is-verified .matrix-node { fill: #8df0ad; stroke: #b7ffca; }
+.circuit-console.is-verified .channel-status { fill: #80e5a1; }
+.circuit-console.is-verified .matrix-footer { color: #80e5a1; }
+.d5-board.is-cut .d5-wire { stroke: #67736b; filter: none; }
+.d5-board.is-cut .d5-left { transform: translateX(-12px); }
+.d5-board.is-cut .d5-right { transform: translateX(12px); }
+.d5-board.is-cut .d5-flow { opacity: 0; animation: none; }
+.d5-board.is-cut .d5-spark { fill: #9effb8; }
+.d5-board.is-cut .circuit-heading span:last-child, .d5-board.is-cut .d5-warning { color: #80e5a1; }
+
 .system-panel { margin-top: 22px; border: 1px solid var(--line); background: #101211; }
 .panel-heading { height: 38px; padding: 0 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; color: #c3c8c4; font-size: 9px; letter-spacing: 1.2px; }
 .panel-live { color: #a7ada9; font-size: 8px; }
@@ -131,10 +171,39 @@ footer b { color: var(--red); }
 .terminal.is-success .timer, .terminal.is-success .pulse-dot { color: var(--green); background-color: var(--green); text-shadow: 0 0 34px #73c99135; }
 .terminal.is-success .timer { background: transparent; }
 .terminal.is-success .alert-strip { background: #122018; color: #8ed4a4; }
+.terminal.is-success .alert-icon, .terminal.is-success .biohazard, .terminal.is-success footer b { color: var(--green); border-color: var(--green); }
 .terminal.is-failure .timer { animation: failure-flicker 1.7s infinite; }
 .terminal.is-matrix .pulse-dot { background: var(--amber); }
+.terminal.matrix-activation { animation: stabilize .9s steps(2, end); }
+.terminal.matrix-activation .matrix-active-path { opacity: 1; stroke-dasharray: 500; stroke-dashoffset: 500; animation: trace-connect .5s ease-out forwards; }
+.terminal.matrix-activation .matrix-channel:nth-of-type(2) .matrix-active-path { animation-delay: .25s; }
+.terminal.matrix-activation .matrix-channel:nth-of-type(3) .matrix-active-path { animation-delay: .5s; }
+.terminal.matrix-activation .channel-status { animation: status-online .2s ease-out both; }
+.terminal.matrix-activation .matrix-channel:nth-of-type(2) .channel-status { animation-delay: .25s; }
+.terminal.matrix-activation .matrix-channel:nth-of-type(3) .channel-status { animation-delay: .5s; }
+.terminal.matrix-activation .matrix-node { animation: endpoint-flash .28s ease-out both; }
+.terminal.matrix-activation .matrix-channel:nth-of-type(2) .matrix-node { animation-delay: .25s; }
+.terminal.matrix-activation .matrix-channel:nth-of-type(3) .matrix-node { animation-delay: .5s; }
+.terminal.success-impact { animation: impact-shake .42s .16s; }
+.terminal.success-impact::after { position: fixed; z-index: 20; inset: 0; background: #edfff1; content: ''; pointer-events: none; animation: containment-flash 1.2s ease-out both; }
+.terminal.success-impact .d5-board.is-cut .d5-left { animation: wire-left-break .32s ease-out both; transform-origin: right center; }
+.terminal.success-impact .d5-board.is-cut .d5-right { animation: wire-right-break .32s ease-out both; transform-origin: left center; }
+.terminal.success-impact .d5-board.is-cut .d5-spark { animation: spark-flash .38s ease-out both; }
+.terminal.success-impact .d5-board.is-cut .d5-warning { animation: warning-die .35s ease-out both; }
 
 @keyframes pulse { 50% { opacity: .45; box-shadow: 0 0 2px currentColor; } }
+@keyframes trace-noise { 0%, 96%, 100% { opacity: .7; } 97% { opacity: .3; } 98% { opacity: .8; } }
+@keyframes current-flow { to { stroke-dashoffset: -50; } }
+@keyframes trace-connect { to { stroke-dashoffset: 0; } }
+@keyframes status-online { from { opacity: 0; fill: #baffc8; } to { opacity: 1; fill: #80e5a1; } }
+@keyframes endpoint-flash { 0% { fill: #fff; } 100% { fill: #8df0ad; } }
+@keyframes stabilize { 0%, 22%, 44% { transform: translateX(1px); filter: brightness(1.7); } 11%, 33% { transform: translateX(-1px); } 100% { transform: none; filter: none; } }
+@keyframes impact-shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-3px); } 40%, 80% { transform: translateX(3px); } }
+@keyframes containment-flash { 0%, 22% { opacity: 0; } 28% { opacity: .88; } 35% { opacity: .18; } 48% { opacity: .42; } 100% { opacity: 0; } }
+@keyframes wire-left-break { 0%, 24% { opacity: 1; transform: translateX(0); } 38% { opacity: .9; } 100% { opacity: 0; transform: translateX(-12px); } }
+@keyframes wire-right-break { 0%, 24% { opacity: 1; transform: translateX(0); } 38% { opacity: .9; } 100% { opacity: 0; transform: translateX(12px); } }
+@keyframes spark-flash { 0% { opacity: 0; r: 0; } 24% { opacity: 1; r: 9; } 100% { opacity: 0; r: 15; } }
+@keyframes warning-die { 0% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes failure-flicker { 0%, 93%, 96%, 100% { opacity: 1; } 94%, 97% { opacity: .68; } }
 @keyframes warning-in { from { opacity: 0; margin-top: -8px; } to { opacity: 1; margin-top: 0; } }
 
@@ -156,8 +225,18 @@ footer b { color: var(--red); }
   .progress-step { font-size: 7px; }
   .progress-step i { margin-right: 2px; }
   .progress-connector { width: 5vw; }
+  .circuit-console { margin-top: 10px; }
+  .circuit-heading { min-height: 25px; font-size: 8px; }
+  .pin-label { font-size: 17px; }
+  .channel-status { font-size: 12px; }
+  .matrix-footer, .d5-warning { font-size: 8px; }
+  .bus-label { font-size: 12px; }
   footer { font-size: 7px; }
   footer span:first-child { max-width: 75%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }
 
 @media (max-height: 740px) and (min-width: 681px) {

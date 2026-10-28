@@ -7,6 +7,8 @@ const terminal = document.getElementById('terminal');
 let socket;
 let reconnectTimer;
 let lastWarning = null;
+let lastAuthoritativeState = null;
+let transitionTimer;
 let currentState = { state: 'IDLE', remainingMs: 0 };
 
 const elements = {
@@ -21,6 +23,14 @@ const elements = {
   circuit: document.getElementById('circuit-value'),
   override: document.getElementById('override-value'),
   link: document.getElementById('link-value'),
+  circuitConsole: document.getElementById('circuit-console'),
+  matrixOverallStatus: document.getElementById('matrix-overall-status'),
+  matrixFooter: document.getElementById('matrix-footer'),
+  channelStatuses: [1, 2, 3].map((channel) => document.getElementById(`channel-status-${channel}`)),
+  d5Board: document.getElementById('d5-board'),
+  d5Status: document.getElementById('d5-status'),
+  d5Warning: document.getElementById('d5-warning'),
+  zone: document.getElementById('zone-label'),
 };
 
 function connect() {
@@ -38,7 +48,7 @@ function connect() {
   socket.addEventListener('message', (message) => {
     try {
       const payload = JSON.parse(message.data);
-      if (payload.type === 'state') renderState(payload.state);
+      if (payload.type === 'state') renderState(payload.state, true);
     } catch {
       elements.link.textContent = 'BAD DATA';
       elements.link.className = 'telemetry-value bad';
@@ -61,13 +71,17 @@ function formatTime(milliseconds) {
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-function renderState(state) {
+function renderState(state, authoritative = false) {
+  const previousState = authoritative ? lastAuthoritativeState?.state : null;
+  const matrixVerifiedNow = previousState === 'MATRIX_STAGE' && state.state === 'WIRE_STAGE';
+  const wireCutNow = previousState === 'WIRE_STAGE' && state.state === 'SUCCESS';
   currentState = state;
   const active = ['COUNTDOWN', 'MATRIX_STAGE', 'WIRE_STAGE'].includes(state.state);
   const matrixStage = state.state === 'MATRIX_STAGE';
   const wireStage = state.state === 'WIRE_STAGE';
   const success = state.state === 'SUCCESS';
   const failure = state.state === 'FAILURE';
+  const verified = wireStage || success;
   const stateLabels = {
     IDLE: 'SYSTEM STANDBY',
     COUNTDOWN: 'SYSTEM ARMING',
@@ -78,6 +92,7 @@ function renderState(state) {
   };
 
   elements.phaseLabel.textContent = stateLabels[state.state] || 'SYSTEM STATUS UNKNOWN';
+  elements.zone.textContent = success ? 'SECTOR 22-D' : 'SECTOR 07';
   elements.timer.textContent = active ? formatTime(state.remainingMs) : success ? 'SAFE' : failure ? 'LOST' : '--:--';
   elements.timer.setAttribute('aria-label', active ? `${formatTime(state.remainingMs)} remaining` : state.state);
   elements.timerCaption.textContent = active ? 'TIME TO CONTAINMENT BREACH' : success ? 'BIOHAZARD LEVEL' : failure ? 'BIOHAZARD LEVEL' : 'SYSTEM STATUS';
@@ -96,13 +111,13 @@ function renderState(state) {
     elements.subheadline.textContent = 'MANUAL OVERRIDE REQUIRED';
     elements.instruction.innerHTML = 'RECONSTRUCT CONTROL MATRIX<br>CONNECT ALL THREE CONTROL CHANNELS';
   } else if (wireStage) {
-    elements.headline.innerHTML = 'CONTROL MATRIX<br>VERIFIED';
-    elements.subheadline.textContent = '3/3 CONTROL CHANNELS ONLINE';
-    elements.instruction.innerHTML = 'EMERGENCY CONTAINMENT PROCEDURE<br>IDENTIFY AND DISCONNECT CIRCUIT D5';
+    elements.headline.innerHTML = 'EMERGENCY CONTAINMENT<br>PROCEDURE';
+    elements.subheadline.textContent = 'CONTROL MATRIX VERIFIED / 3/3 CHANNELS ONLINE';
+    elements.instruction.innerHTML = 'IDENTIFY AND DISCONNECT<br>THE DESIGNATED CIRCUIT';
   } else if (success) {
-    elements.headline.innerHTML = 'CONTAINMENT<br>STABILIZED';
-    elements.subheadline.textContent = 'CONTAINMENT STABILIZED';
-    elements.instruction.innerHTML = 'ACCESS GRANTED<br>SECTOR 07 CLEARED FOR ENTRY';
+    elements.headline.innerHTML = 'CONTAINMENT<br>RESTORED';
+    elements.subheadline.textContent = 'SECTOR 22-D SECURE';
+    elements.instruction.innerHTML = 'ACCESS GRANTED<br>CONTAINMENT SYSTEM STABLE';
   } else {
     elements.headline.innerHTML = 'CONTAINMENT<br>FAILURE';
     elements.subheadline.textContent = 'BIOHAZARD BARRIER COMPROMISED';
@@ -111,13 +126,29 @@ function renderState(state) {
 
   elements.containment.textContent = success ? 'STABILIZED' : failure ? 'BREACHED' : active ? 'AT RISK' : 'STANDBY';
   elements.containment.className = `telemetry-value ${success ? 'good' : active || failure ? 'bad' : ''}`;
-  elements.circuit.textContent = success ? 'SECURE' : wireStage ? 'D5 READY' : matrixStage ? 'RECONSTRUCT' : active ? 'AT RISK' : 'OFFLINE';
+  elements.circuit.textContent = success ? 'SECURE' : wireStage ? 'CUT TARGET READY' : matrixStage ? 'RECONSTRUCT' : active ? 'AT RISK' : 'OFFLINE';
   elements.circuit.className = `telemetry-value ${success ? 'good' : active ? 'bad' : ''}`;
   elements.override.textContent = success ? 'GRANTED' : active || failure ? 'REQUIRED' : 'LOCKED';
   elements.override.className = `telemetry-value ${success ? 'good' : active || failure ? 'bad' : ''}`;
   terminal.classList.toggle('is-success', success);
   terminal.classList.toggle('is-failure', failure);
   terminal.classList.toggle('is-matrix', matrixStage);
+  terminal.classList.toggle('is-wire-stage', wireStage);
+  elements.circuitConsole.hidden = !(matrixStage || wireStage || success);
+  elements.circuitConsole.classList.toggle('is-verified', verified);
+  elements.d5Board.hidden = !(wireStage || success);
+  elements.matrixOverallStatus.textContent = matrixStage ? 'OFFLINE' : verified ? 'VERIFIED' : 'OFFLINE';
+  elements.matrixFooter.textContent = matrixStage
+    ? 'MANUAL OVERRIDE REQUIRED / RECONSTRUCT CONTROL MATRIX'
+    : verified ? '3/3 CONTROL CHANNELS ONLINE / CONTROL MATRIX VERIFIED' : 'CONTROL MATRIX OFFLINE';
+  elements.channelStatuses.forEach((status) => {
+    status.textContent = verified ? 'ONLINE' : 'OFFLINE';
+  });
+  elements.d5Status.textContent = success ? 'CIRCUIT ISOLATED' : 'LIVE / DANGEROUS';
+  elements.d5Warning.textContent = success ? 'CONTAINMENT CIRCUIT OPEN / SAFE' : 'WARNING / LIVE CONTROL CIRCUIT';
+  elements.d5Board.classList.toggle('is-cut', success);
+  if (matrixVerifiedNow) playTransition('matrix-activation', 1700);
+  if (wireCutNow) playTransition('success-impact', 1600);
   gmState.textContent = state.state;
 
   setProgress('step-1', matrixStage, ['WIRE_STAGE', 'SUCCESS'].includes(state.state));
@@ -139,6 +170,14 @@ function renderState(state) {
     button.disabled = !socket || socket.readyState !== WebSocket.OPEN;
   });
   roundDurationInput.disabled = !socket || socket.readyState !== WebSocket.OPEN;
+  if (authoritative) lastAuthoritativeState = state;
+}
+
+function playTransition(className, duration) {
+  clearTimeout(transitionTimer);
+  terminal.classList.remove('matrix-activation', 'success-impact');
+  requestAnimationFrame(() => terminal.classList.add(className));
+  transitionTimer = setTimeout(() => terminal.classList.remove(className), duration);
 }
 
 function setProgress(id, active, done) {
