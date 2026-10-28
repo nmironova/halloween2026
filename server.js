@@ -63,21 +63,21 @@ function getState(now = Date.now()) {
   };
 }
 
-function broadcastState() {
-  const payload = JSON.stringify({ type: 'state', state: getState() });
+function broadcastState(event = null) {
+  const payload = JSON.stringify({ type: 'state', event, state: getState() });
   for (const client of webSocketServer.clients) {
     if (client.readyState === WebSocket.OPEN) client.send(payload);
   }
 }
 
-function setGameState(state, message) {
+function setGameState(state, message, event = null) {
   const previousState = game.state;
   game.state = state;
   game.message = message;
   game.updatedAt = Date.now();
   game.warning = null;
   logEvent(`STATE ${previousState} -> ${state}: ${message}`);
-  broadcastState();
+  broadcastState(event);
 }
 
 function showWarning(text) {
@@ -105,7 +105,7 @@ function handleHardwareEvent(event, options = {}) {
     game.channels[channelEvent.index] = channelEvent.online;
     game.updatedAt = Date.now();
     logEvent(`CHANNEL ${channelEvent.index + 1} ${channelEvent.online ? 'ONLINE' : 'OFFLINE'}: ${normalizedEvent}`);
-    broadcastState();
+    broadcastState(normalizedEvent);
     return;
   }
 
@@ -134,12 +134,12 @@ function handleHardwareEvent(event, options = {}) {
     case 'MATRIX_VERIFIED':
       if (game.state !== 'MATRIX_STAGE') return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
       game.channels = [true, true, true];
-      setGameState('WIRE_STAGE', 'CONTROL MATRIX VERIFIED - DISCONNECT CIRCUIT D5');
+      setGameState('WIRE_STAGE', 'CONTROL MATRIX VERIFIED - DISCONNECT CIRCUIT D5', normalizedEvent);
       break;
     case 'WIRE_CUT':
       if (game.state !== 'WIRE_STAGE') return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
       game.deadline = null;
-      setGameState('SUCCESS', 'CONTAINMENT STABILIZED');
+      setGameState('SUCCESS', 'CONTAINMENT STABILIZED', normalizedEvent);
       break;
     case 'ADD_TIME':
       if (!activeStates.includes(game.state)) return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
@@ -182,6 +182,7 @@ const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.mp3': 'audio/mpeg',
   '.svg': 'image/svg+xml',
   '.wav': 'audio/wav',
 };

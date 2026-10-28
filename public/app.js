@@ -4,13 +4,19 @@ const gmPanel = document.getElementById('gm-panel');
 const gmState = document.getElementById('gm-state');
 const roundDurationInput = document.getElementById('round-duration');
 const terminal = document.getElementById('terminal');
+const sounds = {
+  connected: document.getElementById('sound-connected'),
+  disconnected: document.getElementById('sound-disconnected'),
+  success: document.getElementById('sound-success'),
+  finalFail: document.getElementById('sound-final-fail'),
+};
 let socket;
 let reconnectTimer;
 let lastWarning = null;
 let lastAuthoritativeState = null;
+let suppressNextSnapshotSounds = true;
 let transitionTimer;
 const channelAnimationTimers = new Map();
-let audioContext;
 let currentState = { state: 'IDLE', remainingMs: 0 };
 
 const elements = {
@@ -38,6 +44,7 @@ const elements = {
 
 function connect() {
   clearTimeout(reconnectTimer);
+  suppressNextSnapshotSounds = true;
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   socket = new WebSocket(`${protocol}//${location.host}`);
 
@@ -51,7 +58,11 @@ function connect() {
   socket.addEventListener('message', (message) => {
     try {
       const payload = JSON.parse(message.data);
-      if (payload.type === 'state') renderState(payload.state, true);
+      if (payload.type === 'state') {
+        const playLiveSounds = !suppressNextSnapshotSounds;
+        suppressNextSnapshotSounds = false;
+        renderState(payload.state, true, playLiveSounds, payload.event);
+      }
     } catch {
       elements.link.textContent = 'BAD DATA';
       elements.link.className = 'telemetry-value bad';
@@ -74,7 +85,7 @@ function formatTime(milliseconds) {
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-function renderState(state, authoritative = false) {
+function renderState(state, authoritative = false, playLiveSounds = false, liveEvent = null) {
   const previousState = authoritative ? lastAuthoritativeState?.state : null;
   const previousChannels = authoritative ? lastAuthoritativeState?.channels : null;
   const matrixVerifiedNow = previousState === 'MATRIX_STAGE' && state.state === 'WIRE_STAGE';
@@ -151,22 +162,36 @@ function renderState(state, authoritative = false) {
     const channelOnline = verified || Boolean(channels[index]);
     const channelChangedOnline = matrixStage && previousState === 'MATRIX_STAGE'
       && !previousChannels?.[index] && channelOnline;
+    const channelChangedOffline = matrixStage && previousState === 'MATRIX_STAGE'
+      && previousChannels?.[index] && !channelOnline;
     status.textContent = channelOnline ? 'ONLINE' : 'OFFLINE';
     elements.matrixChannels[index].classList.toggle('is-online', channelOnline);
     if (channelChangedOnline) {
       animateChannel(index);
-      playChannelChirp(onlineCount);
+      if (playLiveSounds && liveEvent === ['CHANNEL_D2_D8_ONLINE', 'CHANNEL_D3_D6_ONLINE', 'CHANNEL_D4_D7_ONLINE'][index]) {
+        playSound('connected');
+      }
     } else if (!channelOnline) {
       clearTimeout(channelAnimationTimers.get(index));
       channelAnimationTimers.delete(index);
       elements.matrixChannels[index].classList.remove('is-joining');
     }
+    if (channelChangedOffline && playLiveSounds
+      && liveEvent === ['CHANNEL_D2_D8_OFFLINE', 'CHANNEL_D3_D6_OFFLINE', 'CHANNEL_D4_D7_OFFLINE'][index]) {
+      playSound('disconnected');
+    }
   });
   elements.d5Status.textContent = success ? 'CIRCUIT ISOLATED' : 'LIVE / DANGEROUS';
   elements.d5Warning.textContent = success ? 'CONTAINMENT CIRCUIT OPEN / SAFE' : 'WARNING / LIVE CONTROL CIRCUIT';
   elements.d5Board.classList.toggle('is-cut', success);
-  if (matrixVerifiedNow) playTransition('matrix-activation', 1700);
-  if (wireCutNow) playTransition('success-impact', 1600);
+  if (matrixVerifiedNow) {
+    playTransition('matrix-activation', 1700);
+    if (playLiveSounds && liveEvent === 'MATRIX_VERIFIED') playMatrixVerifiedSound();
+  }
+  if (wireCutNow) {
+    playTransition('success-impact', 1600);
+    if (playLiveSounds && liveEvent === 'WIRE_CUT') playSound('finalFail');
+  }
   gmState.textContent = state.state;
 
   setProgress('step-1', matrixStage, ['WIRE_STAGE', 'SUCCESS'].includes(state.state));
@@ -202,45 +227,59 @@ function animateChannel(index) {
   }, 650));
 }
 
-function unlockAudio() {
-  if (!audioContext) {
-    const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
-    if (AudioContextConstructor) audioContext = new AudioContextConstructor();
-  }
-  if (audioContext?.state === 'suspended') audioContext.resume().catch(() => {});
+function primeSounds() {
+  Object.entries(sounds).forEach(([name, audio]) => {
+    let priming;
+    try {
+      audio.muted = true;
+      audio.currentTime = 0;
+      priming = audio.play();
+    } catch (error) {
+      audio.muted = false;
+      console.warn(`[AUDIO] unable to prime ${name}: ${error.message}`);
+      return;
+    }
+    if (!priming) {
+      audio.pause();
+      audio.muted = false;
+      return;
+    }
+    priming.then(() => {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.muted = false;
+      } catch (error) {
+        console.warn(`[AUDIO] unable to reset ${name}: ${error.message}`);
+      }
+    }).catch((error) => {
+      audio.muted = false;
+      console.warn(`[AUDIO] unable to prime ${name}: ${error.message}`);
+    });
+  });
 }
 
-function playChannelChirp(onlineCount) {
-  unlockAudio();
-  if (!audioContext) return;
-  if (audioContext.state === 'suspended') {
-    audioContext.resume().then(() => {
-      if (audioContext.state === 'running') scheduleChannelChirp(onlineCount);
-    }).catch(() => {});
-    return;
+function playSound(name) {
+  const audio = sounds[name];
+  if (!audio) return;
+  try {
+    audio.pause();
+    audio.currentTime = 0;
+    const playback = audio.play();
+    if (playback) {
+      playback.catch((error) => console.warn(`[AUDIO] unable to play ${name}: ${error.message}`));
+    }
+  } catch (error) {
+    console.warn(`[AUDIO] unable to play ${name}: ${error.message}`);
   }
-  if (audioContext.state !== 'running') return;
-  scheduleChannelChirp(onlineCount);
 }
 
-function scheduleChannelChirp(onlineCount) {
-  const oscillator = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  const start = audioContext.currentTime;
-  oscillator.type = 'square';
-  oscillator.frequency.setValueAtTime(460 + (onlineCount - 1) * 90, start);
-  oscillator.frequency.exponentialRampToValueAtTime(oscillator.frequency.value * 0.92, start + 0.16);
-  gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(0.07, start + 0.012);
-  gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
-  oscillator.connect(gain);
-  gain.connect(audioContext.destination);
-  oscillator.start(start);
-  oscillator.stop(start + 0.19);
-  oscillator.addEventListener('ended', () => {
-    oscillator.disconnect();
-    gain.disconnect();
-  }, { once: true });
+function playMatrixVerifiedSound() {
+  const connected = sounds.connected;
+  const remainingMs = !connected.paused && Number.isFinite(connected.duration)
+    ? Math.max(0, connected.duration - connected.currentTime) * 1000
+    : 0;
+  setTimeout(() => playSound('success'), remainingMs ? remainingMs + 120 : 0);
 }
 
 function playTransition(className, duration) {
@@ -267,7 +306,6 @@ function toggleGameMaster(forceOpen) {
 }
 
 document.addEventListener('keydown', (event) => {
-  unlockAudio();
   if (event.key === 'F8') {
     event.preventDefault();
     toggleGameMaster();
@@ -276,13 +314,11 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-document.addEventListener('pointerdown', unlockAudio, { once: true });
-
 document.querySelectorAll('.gm-button').forEach((button) => {
   button.addEventListener('click', () => {
-    unlockAudio();
     if (button.dataset.event === 'START') {
       if (!roundDurationInput.reportValidity()) return;
+      primeSounds();
       sendEvent('START', { durationMinutes: roundDurationInput.valueAsNumber });
       toggleGameMaster(false);
       return;
