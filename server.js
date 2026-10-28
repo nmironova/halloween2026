@@ -17,6 +17,14 @@ const WRONG_EVENT_PENALTY_MS = WRONG_EVENT_PENALTY_SECONDS * 1000;
 const WARNING_DURATION_MS = 6000;
 const TICK_INTERVAL_MS = 250;
 const STATES = Object.freeze(['IDLE', 'COUNTDOWN', 'MATRIX_STAGE', 'WIRE_STAGE', 'SUCCESS', 'FAILURE']);
+const MATRIX_CHANNEL_EVENTS = Object.freeze({
+  CHANNEL_D2_D8_ONLINE: { index: 0, online: true },
+  CHANNEL_D2_D8_OFFLINE: { index: 0, online: false },
+  CHANNEL_D3_D6_ONLINE: { index: 1, online: true },
+  CHANNEL_D3_D6_OFFLINE: { index: 1, online: false },
+  CHANNEL_D4_D7_ONLINE: { index: 2, online: true },
+  CHANNEL_D4_D7_OFFLINE: { index: 2, online: false },
+});
 
 let game = createInitialGame();
 let nextWarningId = 0;
@@ -24,6 +32,7 @@ let nextWarningId = 0;
 function createInitialGame() {
   return {
     state: 'IDLE',
+    channels: [false, false, false],
     deadline: null,
     countdownDeadline: null,
     roundDurationMs: DEFAULT_GAME_DURATION_MS,
@@ -46,6 +55,7 @@ function getState(now = Date.now()) {
 
   return {
     state: game.state,
+    channels: [...game.channels],
     remainingMs,
     warning: game.warning && game.warning.expiresAt > now ? game.warning.text : null,
     message: game.message,
@@ -85,6 +95,19 @@ function handleHardwareEvent(event, options = {}) {
 
   const normalizedEvent = event.trim().toUpperCase();
   const activeStates = ['MATRIX_STAGE', 'WIRE_STAGE'];
+  const channelEvent = MATRIX_CHANNEL_EVENTS[normalizedEvent];
+
+  if (channelEvent) {
+    if (game.state !== 'MATRIX_STAGE') return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
+    if (game.channels[channelEvent.index] === channelEvent.online) {
+      return logEvent(`IGNORED duplicate ${normalizedEvent} in ${game.state}`);
+    }
+    game.channels[channelEvent.index] = channelEvent.online;
+    game.updatedAt = Date.now();
+    logEvent(`CHANNEL ${channelEvent.index + 1} ${channelEvent.online ? 'ONLINE' : 'OFFLINE'}: ${normalizedEvent}`);
+    broadcastState();
+    return;
+  }
 
   switch (normalizedEvent) {
     case 'START':
@@ -110,6 +133,7 @@ function handleHardwareEvent(event, options = {}) {
     }
     case 'MATRIX_VERIFIED':
       if (game.state !== 'MATRIX_STAGE') return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
+      game.channels = [true, true, true];
       setGameState('WIRE_STAGE', 'CONTROL MATRIX VERIFIED - DISCONNECT CIRCUIT D5');
       break;
     case 'WIRE_CUT':

@@ -9,6 +9,8 @@ let reconnectTimer;
 let lastWarning = null;
 let lastAuthoritativeState = null;
 let transitionTimer;
+const channelAnimationTimers = new Map();
+let audioContext;
 let currentState = { state: 'IDLE', remainingMs: 0 };
 
 const elements = {
@@ -27,6 +29,7 @@ const elements = {
   matrixOverallStatus: document.getElementById('matrix-overall-status'),
   matrixFooter: document.getElementById('matrix-footer'),
   channelStatuses: [1, 2, 3].map((channel) => document.getElementById(`channel-status-${channel}`)),
+  matrixChannels: Array.from(document.querySelectorAll('.matrix-channel')),
   d5Board: document.getElementById('d5-board'),
   d5Status: document.getElementById('d5-status'),
   d5Warning: document.getElementById('d5-warning'),
@@ -73,6 +76,7 @@ function formatTime(milliseconds) {
 
 function renderState(state, authoritative = false) {
   const previousState = authoritative ? lastAuthoritativeState?.state : null;
+  const previousChannels = authoritative ? lastAuthoritativeState?.channels : null;
   const matrixVerifiedNow = previousState === 'MATRIX_STAGE' && state.state === 'WIRE_STAGE';
   const wireCutNow = previousState === 'WIRE_STAGE' && state.state === 'SUCCESS';
   currentState = state;
@@ -138,11 +142,25 @@ function renderState(state, authoritative = false) {
   elements.circuitConsole.classList.toggle('is-verified', verified);
   elements.d5Board.hidden = !(wireStage || success);
   elements.matrixOverallStatus.textContent = matrixStage ? 'OFFLINE' : verified ? 'VERIFIED' : 'OFFLINE';
-  elements.matrixFooter.textContent = matrixStage
-    ? 'MANUAL OVERRIDE REQUIRED / RECONSTRUCT CONTROL MATRIX'
-    : verified ? '3/3 CONTROL CHANNELS ONLINE / CONTROL MATRIX VERIFIED' : 'CONTROL MATRIX OFFLINE';
-  elements.channelStatuses.forEach((status) => {
-    status.textContent = verified ? 'ONLINE' : 'OFFLINE';
+  const channels = Array.isArray(state.channels) ? state.channels : [false, false, false];
+  const onlineCount = verified ? 3 : channels.filter(Boolean).length;
+  elements.matrixFooter.textContent = verified
+    ? '3 / 3 CONTROL CHANNELS ONLINE / CONTROL MATRIX VERIFIED'
+    : `${onlineCount} / 3 CONTROL CHANNELS ONLINE`;
+  elements.channelStatuses.forEach((status, index) => {
+    const channelOnline = verified || Boolean(channels[index]);
+    const channelChangedOnline = matrixStage && previousState === 'MATRIX_STAGE'
+      && !previousChannels?.[index] && channelOnline;
+    status.textContent = channelOnline ? 'ONLINE' : 'OFFLINE';
+    elements.matrixChannels[index].classList.toggle('is-online', channelOnline);
+    if (channelChangedOnline) {
+      animateChannel(index);
+      playChannelChirp(onlineCount);
+    } else if (!channelOnline) {
+      clearTimeout(channelAnimationTimers.get(index));
+      channelAnimationTimers.delete(index);
+      elements.matrixChannels[index].classList.remove('is-joining');
+    }
   });
   elements.d5Status.textContent = success ? 'CIRCUIT ISOLATED' : 'LIVE / DANGEROUS';
   elements.d5Warning.textContent = success ? 'CONTAINMENT CIRCUIT OPEN / SAFE' : 'WARNING / LIVE CONTROL CIRCUIT';
@@ -173,6 +191,58 @@ function renderState(state, authoritative = false) {
   if (authoritative) lastAuthoritativeState = state;
 }
 
+function animateChannel(index) {
+  const row = elements.matrixChannels[index];
+  clearTimeout(channelAnimationTimers.get(index));
+  row.classList.remove('is-joining');
+  requestAnimationFrame(() => row.classList.add('is-joining'));
+  channelAnimationTimers.set(index, setTimeout(() => {
+    row.classList.remove('is-joining');
+    channelAnimationTimers.delete(index);
+  }, 650));
+}
+
+function unlockAudio() {
+  if (!audioContext) {
+    const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextConstructor) audioContext = new AudioContextConstructor();
+  }
+  if (audioContext?.state === 'suspended') audioContext.resume().catch(() => {});
+}
+
+function playChannelChirp(onlineCount) {
+  unlockAudio();
+  if (!audioContext) return;
+  if (audioContext.state === 'suspended') {
+    audioContext.resume().then(() => {
+      if (audioContext.state === 'running') scheduleChannelChirp(onlineCount);
+    }).catch(() => {});
+    return;
+  }
+  if (audioContext.state !== 'running') return;
+  scheduleChannelChirp(onlineCount);
+}
+
+function scheduleChannelChirp(onlineCount) {
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const start = audioContext.currentTime;
+  oscillator.type = 'square';
+  oscillator.frequency.setValueAtTime(460 + (onlineCount - 1) * 90, start);
+  oscillator.frequency.exponentialRampToValueAtTime(oscillator.frequency.value * 0.92, start + 0.16);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(0.07, start + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.18);
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start(start);
+  oscillator.stop(start + 0.19);
+  oscillator.addEventListener('ended', () => {
+    oscillator.disconnect();
+    gain.disconnect();
+  }, { once: true });
+}
+
 function playTransition(className, duration) {
   clearTimeout(transitionTimer);
   terminal.classList.remove('matrix-activation', 'success-impact');
@@ -197,6 +267,7 @@ function toggleGameMaster(forceOpen) {
 }
 
 document.addEventListener('keydown', (event) => {
+  unlockAudio();
   if (event.key === 'F8') {
     event.preventDefault();
     toggleGameMaster();
@@ -205,8 +276,11 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+document.addEventListener('pointerdown', unlockAudio, { once: true });
+
 document.querySelectorAll('.gm-button').forEach((button) => {
   button.addEventListener('click', () => {
+    unlockAudio();
     if (button.dataset.event === 'START') {
       if (!roundDurationInput.reportValidity()) return;
       sendEvent('START', { durationMinutes: roundDurationInput.valueAsNumber });

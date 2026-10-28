@@ -35,25 +35,25 @@
             <div class="circuit-heading"><span>CONTROL MATRIX</span><span id="matrix-overall-status">OFFLINE</span></div>
             <svg class="matrix-svg" viewBox="0 0 860 220" role="img" aria-labelledby="matrix-title matrix-description">
               <title id="matrix-title">Three-channel control matrix</title>
-              <desc id="matrix-description">Three disconnected control channels.</desc>
+              <desc id="matrix-description">Three control channels, each with an online or offline status.</desc>
               <g class="matrix-channel">
                 <text class="pin-label" x="16" y="51">CHANNEL 01</text>
                 <path class="matrix-trace" d="M80 46H273M297 46H530" />
-                <path class="matrix-active-path" d="M80 46H530" />
+                <path class="matrix-active-path" d="M80 46H530" /><path class="matrix-pulse" d="M80 46H530" />
                 <circle class="matrix-node" cx="80" cy="46" r="5" /><circle class="matrix-node" cx="530" cy="46" r="5" />
                 <text class="pin-label" x="552" y="51">LINK 01</text><text class="channel-status" id="channel-status-1" x="640" y="51">OFFLINE</text>
               </g>
               <g class="matrix-channel">
                 <text class="pin-label" x="16" y="117">CHANNEL 02</text>
                 <path class="matrix-trace" d="M80 112H273M297 112H530" />
-                <path class="matrix-active-path" d="M80 112H530" />
+                <path class="matrix-active-path" d="M80 112H530" /><path class="matrix-pulse" d="M80 112H530" />
                 <circle class="matrix-node" cx="80" cy="112" r="5" /><circle class="matrix-node" cx="530" cy="112" r="5" />
                 <text class="pin-label" x="552" y="117">LINK 02</text><text class="channel-status" id="channel-status-2" x="640" y="117">OFFLINE</text>
               </g>
               <g class="matrix-channel">
                 <text class="pin-label" x="16" y="183">CHANNEL 03</text>
                 <path class="matrix-trace" d="M80 178H273M297 178H530" />
-                <path class="matrix-active-path" d="M80 178H530" />
+                <path class="matrix-active-path" d="M80 178H530" /><path class="matrix-pulse" d="M80 178H530" />
                 <circle class="matrix-node" cx="80" cy="178" r="5" /><circle class="matrix-node" cx="530" cy="178" r="5" />
                 <text class="pin-label" x="552" y="183">LINK 03</text><text class="channel-status" id="channel-status-3" x="640" y="183">OFFLINE</text>
               </g>
@@ -65,7 +65,7 @@
             <div class="circuit-heading"><span>EMERGENCY CONTAINMENT CIRCUIT</span><span id="d5-status">LIVE / DANGEROUS</span></div>
             <svg class="d5-svg" viewBox="0 0 860 88" role="img" aria-labelledby="d5-title d5-description">
               <title id="d5-title">Designated cut circuit to containment bus</title>
-              <desc id="d5-description">A live red circuit runs to the containment bus.</desc>
+              <desc id="d5-description">A red circuit to the containment bus, shown live before the cut and safe after.</desc>
               <text class="d5-pin" x="16" y="50">CUT TARGET</text>
               <path class="d5-wire d5-left" d="M76 44H430" />
               <path class="d5-wire d5-right" d="M430 44H696" />
@@ -103,6 +103,12 @@
         <button class="gm-button" data-event="RESET">RESET</button>
         <button class="gm-button gm-primary" data-event="MATRIX_VERIFIED">MATRIX_VERIFIED</button>
         <button class="gm-button" data-event="WIRE_CUT">WIRE_CUT</button>
+        <button class="gm-button gm-channel" data-event="CHANNEL_D2_D8_ONLINE">CH 01 ONLINE</button>
+        <button class="gm-button gm-channel" data-event="CHANNEL_D2_D8_OFFLINE">CH 01 OFFLINE</button>
+        <button class="gm-button gm-channel" data-event="CHANNEL_D3_D6_ONLINE">CH 02 ONLINE</button>
+        <button class="gm-button gm-channel" data-event="CHANNEL_D3_D6_OFFLINE">CH 02 OFFLINE</button>
+        <button class="gm-button gm-channel" data-event="CHANNEL_D4_D7_ONLINE">CH 03 ONLINE</button>
+        <button class="gm-button gm-channel" data-event="CHANNEL_D4_D7_OFFLINE">CH 03 OFFLINE</button>
         <button class="gm-button" data-event="ADD_TIME">+30 SEC</button>
         <button class="gm-button" data-event="SUBTRACT_TIME">-30 SEC</button>
         <button class="gm-button gm-success" data-event="FORCE_SUCCESS">FORCE SUCCESS</button>
