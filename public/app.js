@@ -128,7 +128,7 @@ function renderState(state, authoritative = false, playLiveSounds = false, liveE
   } else if (wireStage) {
     elements.headline.innerHTML = 'EMERGENCY CONTAINMENT<br>PROCEDURE';
     elements.subheadline.textContent = 'CONTROL MATRIX VERIFIED / 3/3 CHANNELS ONLINE';
-    elements.instruction.innerHTML = 'IDENTIFY AND DISCONNECT<br>THE DESIGNATED CIRCUIT';
+    elements.instruction.innerHTML = 'IDENTIFY AND CUT<br>THE DESIGNATED CIRCUIT';
   } else if (success) {
     elements.headline.innerHTML = 'CONTAINMENT<br>RESTORED';
     elements.subheadline.textContent = 'SECTOR 22-D SECURE';
@@ -190,8 +190,10 @@ function renderState(state, authoritative = false, playLiveSounds = false, liveE
   }
   if (wireCutNow) {
     playTransition('success-impact', 1600);
-    if (playLiveSounds && liveEvent === 'WIRE_CUT') playSound('finalFail');
+    if (playLiveSounds && liveEvent === 'WIRE_CUT') playSound('success');
   }
+  if (playLiveSounds && liveEvent === 'FORCE_SUCCESS' && success) playSound('success');
+  if (playLiveSounds && liveEvent === 'FORCE_FAILURE' && failure) playSound('finalFail');
   gmState.textContent = state.state;
 
   setProgress('step-1', matrixStage, ['WIRE_STAGE', 'SUCCESS'].includes(state.state));
@@ -279,7 +281,7 @@ function playMatrixVerifiedSound() {
   const remainingMs = !connected.paused && Number.isFinite(connected.duration)
     ? Math.max(0, connected.duration - connected.currentTime) * 1000
     : 0;
-  setTimeout(() => playSound('success'), remainingMs ? remainingMs + 120 : 0);
+  setTimeout(() => playSound('finalFail'), remainingMs ? remainingMs + 120 : 0);
 }
 
 function playTransition(className, duration) {

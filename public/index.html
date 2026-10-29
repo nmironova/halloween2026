@@ -15,7 +15,7 @@
     <audio id="sound-final-fail" src="/sounds/final_fail.mp3" preload="auto"></audio>
     <main class="terminal" id="terminal">
       <header class="topbar">
-        <div class="brand"><span class="biohazard" aria-hidden="true">☣</span><span>H.A.Z.M.A.T.<small>HAZARD MANAGEMENT &amp; ZONE ACCESS TERMINAL</small></span></div>
+        <div class="brand"><span class="biohazard" aria-hidden="true">☣</span></div>
         <div class="topbar-right"><span class="live-indicator"><i></i><span id="connection-label">LINKING</span></span><button class="icon-button" id="fullscreen-button" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen"><span aria-hidden="true">⛶</span></button></div>
       </header>
 
@@ -41,25 +41,25 @@
               <title id="matrix-title">Three-channel control matrix</title>
               <desc id="matrix-description">Three control channels, each with an online or offline status.</desc>
               <g class="matrix-channel">
-                <text class="pin-label" x="16" y="51">CHANNEL 01</text>
+                <text class="pin-label" x="16" y="51">X01</text>
                 <path class="matrix-trace" d="M80 46H273M297 46H530" />
                 <path class="matrix-active-path" d="M80 46H530" /><path class="matrix-pulse" d="M80 46H530" />
                 <circle class="matrix-node" cx="80" cy="46" r="5" /><circle class="matrix-node" cx="530" cy="46" r="5" />
-                <text class="pin-label" x="552" y="51">LINK 01</text><text class="channel-status" id="channel-status-1" x="640" y="51">OFFLINE</text>
+                <text class="pin-label" x="552" y="51">Y01</text><text class="channel-status" id="channel-status-1" x="640" y="51">OFFLINE</text>
               </g>
               <g class="matrix-channel">
-                <text class="pin-label" x="16" y="117">CHANNEL 02</text>
+                <text class="pin-label" x="16" y="117">X02</text>
                 <path class="matrix-trace" d="M80 112H273M297 112H530" />
                 <path class="matrix-active-path" d="M80 112H530" /><path class="matrix-pulse" d="M80 112H530" />
                 <circle class="matrix-node" cx="80" cy="112" r="5" /><circle class="matrix-node" cx="530" cy="112" r="5" />
-                <text class="pin-label" x="552" y="117">LINK 02</text><text class="channel-status" id="channel-status-2" x="640" y="117">OFFLINE</text>
+                <text class="pin-label" x="552" y="117">Y02</text><text class="channel-status" id="channel-status-2" x="640" y="117">OFFLINE</text>
               </g>
               <g class="matrix-channel">
-                <text class="pin-label" x="16" y="183">CHANNEL 03</text>
+                <text class="pin-label" x="16" y="183">X03</text>
                 <path class="matrix-trace" d="M80 178H273M297 178H530" />
                 <path class="matrix-active-path" d="M80 178H530" /><path class="matrix-pulse" d="M80 178H530" />
                 <circle class="matrix-node" cx="80" cy="178" r="5" /><circle class="matrix-node" cx="530" cy="178" r="5" />
-                <text class="pin-label" x="552" y="183">LINK 03</text><text class="channel-status" id="channel-status-3" x="640" y="183">OFFLINE</text>
+                <text class="pin-label" x="552" y="183">Y03</text><text class="channel-status" id="channel-status-3" x="640" y="183">OFFLINE</text>
               </g>
             </svg>
             <div class="matrix-footer" id="matrix-footer">MANUAL OVERRIDE REQUIRED / RECONSTRUCT CONTROL MATRIX</div>
@@ -70,7 +70,7 @@
             <svg class="d5-svg" viewBox="0 0 860 88" role="img" aria-labelledby="d5-title d5-description">
               <title id="d5-title">Designated cut circuit to containment bus</title>
               <desc id="d5-description">A red circuit to the containment bus, shown live before the cut and safe after.</desc>
-              <text class="d5-pin" x="16" y="50">CUT TARGET</text>
+              <text class="d5-pin" x="16" y="50">CUT</text>
               <path class="d5-wire d5-left" d="M76 44H430" />
               <path class="d5-wire d5-right" d="M430 44H696" />
               <path class="d5-flow" d="M76 44H696" />

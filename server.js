@@ -164,13 +164,13 @@ function handleHardwareEvent(event, options = {}) {
       if (!['COUNTDOWN', ...activeStates].includes(game.state)) return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
       game.deadline = null;
       game.countdownDeadline = null;
-      setGameState('SUCCESS', 'CONTAINMENT STABILIZED');
+      setGameState('SUCCESS', 'CONTAINMENT STABILIZED', normalizedEvent);
       break;
     case 'FORCE_FAILURE':
       if (!['COUNTDOWN', ...activeStates].includes(game.state)) return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
       game.deadline = null;
       game.countdownDeadline = null;
-      setGameState('FAILURE', 'CONTAINMENT FAILURE');
+      setGameState('FAILURE', 'CONTAINMENT FAILURE', normalizedEvent);
       break;
     default:
       logEvent(`IGNORED unknown event: ${normalizedEvent || '(empty)'}`);
