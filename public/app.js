@@ -7,6 +7,7 @@ const terminal = document.getElementById('terminal');
 const sounds = {
   connected: document.getElementById('sound-connected'),
   disconnected: document.getElementById('sound-disconnected'),
+  start: document.getElementById('sound-start'),
   success: document.getElementById('sound-success'),
   finalFail: document.getElementById('sound-final-fail'),
 };
@@ -184,6 +185,7 @@ function renderState(state, authoritative = false, playLiveSounds = false, liveE
   elements.d5Status.textContent = success ? 'CIRCUIT ISOLATED' : 'LIVE / DANGEROUS';
   elements.d5Warning.textContent = success ? 'CONTAINMENT CIRCUIT OPEN / SAFE' : 'WARNING / LIVE CONTROL CIRCUIT';
   elements.d5Board.classList.toggle('is-cut', success);
+  if (playLiveSounds && liveEvent === 'START' && state.state === 'COUNTDOWN') playSound('start');
   if (matrixVerifiedNow) {
     playTransition('matrix-activation', 1700);
     if (playLiveSounds && liveEvent === 'MATRIX_VERIFIED') playMatrixVerifiedSound();

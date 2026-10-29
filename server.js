@@ -122,7 +122,7 @@ function handleHardwareEvent(event, options = {}) {
         : options.durationMinutes * 60 * 1000;
       game.deadline = null;
       game.countdownDeadline = Date.now() + START_COUNTDOWN_MS;
-      setGameState('COUNTDOWN', `${game.roundDurationMs / 60000} MINUTE ROUND ARMING`);
+      setGameState('COUNTDOWN', `${game.roundDurationMs / 60000} MINUTE ROUND ARMING`, normalizedEvent);
       break;
     case 'RESET': {
       const previousState = game.state;
