@@ -82,6 +82,10 @@
             <div class="d5-warning" id="d5-warning">WARNING / LIVE CONTROL CIRCUIT</div>
           </div>
         </section>
+
+        <figure class="success-route" id="success-route" hidden>
+          <img src="/route-57.jpg" alt="Route 57 evacuation route through the park" />
+        </figure>
       </section>
 
       <section class="system-panel" aria-label="System status">
@@ -102,9 +106,10 @@
     <aside class="gm-panel" id="gm-panel" aria-label="Game master controls" hidden>
       <div class="gm-header"><div><span class="gm-eyebrow">LOCAL DEBUG INTERFACE</span><h2>GAME MASTER</h2></div><button class="gm-close" id="gm-close" type="button" aria-label="Close game master panel">×</button></div>
       <p class="gm-state">STATE <strong id="gm-state">DISCONNECTED</strong></p>
-      <label class="gm-duration" for="round-duration"><span>ROUND TIMER</span><span class="gm-duration-control"><input id="round-duration" type="number" min="1" max="60" step="1" value="10" required><span>MINUTES</span></span></label>
+      <label class="gm-duration" for="round-duration"><span>ROUND TIMER</span><span class="gm-duration-control"><input id="round-duration" type="number" min="1" max="60" step="1" value="15" required><span>MINUTES</span></span></label>
       <div class="gm-grid">
         <button class="gm-button gm-primary" data-event="START">START</button>
+        <button class="gm-button gm-primary" data-event="SKIP_COUNTDOWN" disabled>SKIP COUNTDOWN</button>
         <button class="gm-button" data-event="RESET">RESET</button>
         <button class="gm-button gm-primary" data-event="MATRIX_VERIFIED">MATRIX_VERIFIED</button>
         <button class="gm-button" data-event="WIRE_CUT">WIRE_CUT</button>

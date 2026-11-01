@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Sector 22 — Sound Control</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 24px;
+
+      background: #07110d;
+      color: #d8ffe6;
+
+      font-family: system-ui, -apple-system, BlinkMacSystemFont,
+                   "Segoe UI", sans-serif;
+    }
+
+    h1 {
+      margin: 0;
+      color: #70ff9d;
+      font-size: 28px;
+      letter-spacing: 2px;
+    }
+
+    .subtitle {
+      margin: 6px 0 24px;
+      opacity: 0.65;
+      font-family: monospace;
+    }
+
+    .status {
+      padding: 14px;
+      margin-bottom: 20px;
+
+      border: 1px solid #265c39;
+      background: #0c1c13;
+
+      font-family: monospace;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    button {
+      min-height: 90px;
+      padding: 14px;
+
+      border: 1px solid #34794d;
+      border-radius: 8px;
+
+      background: #10271a;
+      color: white;
+
+      font-size: 18px;
+      font-weight: 700;
+
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: scale(0.97);
+      background: #194029;
+    }
+
+    .stop {
+      grid-column: 1 / -1;
+
+      margin-top: 12px;
+
+      background: #641b1b;
+      border-color: #d84a4a;
+
+      font-size: 22px;
+    }
+
+    .stop:active {
+      background: #8c2424;
+    }
+
+    .volume {
+      margin-top: 24px;
+      padding: 18px;
+
+      border: 1px solid #265c39;
+      background: #0c1c13;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>SECTOR 22</h1>
+  <div class="subtitle">REMOTE AUDIO CONTROL</div>
+
+  <div class="status" id="status">
+    AUDIO SYSTEM READY
+  </div>
+
+  <div class="grid">
+
+    <button onclick="playSound('growl')">
+      😈<br>DISTANT GROWL
+    </button>
+
+    <button onclick="playSound('closeGrowl')">
+      🧟<br>CLOSE GROWL
+    </button>
+
+    <button onclick="playSound('breathing')">
+      🫁<br>BREATHING
+    </button>
+
+    <button onclick="playSound('scratching')">
+      🖐️<br>SCRATCHING
+    </button>
+
+    <button onclick="playSound('footsteps')">
+      👣<br>FOOTSTEPS
+    </button>
+
+    <button onclick="playSound('scream')">
+      😱<br>SCREAM
+    </button>
+
+    <button onclick="playSound('horde')">
+      🧟‍♂️🧟‍♀️<br>HORDE
+    </button>
+
+    <button class="stop" onclick="stopAll()">
+      ■ STOP ALL
+    </button>
+
+  </div>
+
+  <div class="volume">
+    VOLUME
+
+    <input
+      id="volume"
+      type="range"
+      min="0"
+      max="1"
+      value="0.7"
+      step="0.05"
+      oninput="changeVolume(this.value)"
+    />
+  </div>
+
+
+<script>
+
+const sounds = {
+
+  growl:
+    new Audio("sounds/growl.mp3"),
+
+  closeGrowl:
+    new Audio("sounds/close-growl.mp3"),
+
+  breathing:
+    new Audio("sounds/breathing.mp3"),
+
+  scratching:
+    new Audio("sounds/scratching.mp3"),
+
+  footsteps:
+    new Audio("sounds/footsteps.mp3"),
+
+  scream:
+    new Audio("sounds/scream.mp3"),
+
+  horde:
+    new Audio("sounds/horde.mp3"),
+};
+
+
+const status =
+  document.getElementById("status");
+
+
+function playSound(name) {
+
+  stopAll(false);
+
+  const sound = sounds[name];
+
+  sound.currentTime = 0;
+
+  sound.play();
+
+  status.textContent =
+    "PLAYING: " + name.toUpperCase();
+}
+
+
+function stopAll(showStatus = true) {
+
+  Object.values(sounds).forEach(sound => {
+
+    sound.pause();
+
+    sound.currentTime = 0;
+
+  });
+
+  if (showStatus) {
+    status.textContent =
+      "AUDIO STOPPED";
+  }
+}
+
+
+function changeVolume(value) {
+
+  Object.values(sounds).forEach(sound => {
+    sound.volume = value;
+  });
+
+}
+
+
+changeVolume(
+  document.getElementById("volume").value
+);
+
+</script>
+
+</body>
+</html>

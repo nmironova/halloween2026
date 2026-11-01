@@ -40,6 +40,7 @@ const elements = {
   d5Board: document.getElementById('d5-board'),
   d5Status: document.getElementById('d5-status'),
   d5Warning: document.getElementById('d5-warning'),
+  successRoute: document.getElementById('success-route'),
   zone: document.getElementById('zone-label'),
 };
 
@@ -92,7 +93,7 @@ function renderState(state, authoritative = false, playLiveSounds = false, liveE
   const matrixVerifiedNow = previousState === 'MATRIX_STAGE' && state.state === 'WIRE_STAGE';
   const wireCutNow = previousState === 'WIRE_STAGE' && state.state === 'SUCCESS';
   currentState = state;
-  const active = ['COUNTDOWN', 'MATRIX_STAGE', 'WIRE_STAGE'].includes(state.state);
+  const active = ['COUNTDOWN', 'MATRIX_STAGE', 'WIRE_STAGE', 'SUCCESS'].includes(state.state);
   const matrixStage = state.state === 'MATRIX_STAGE';
   const wireStage = state.state === 'WIRE_STAGE';
   const success = state.state === 'SUCCESS';
@@ -109,10 +110,12 @@ function renderState(state, authoritative = false, playLiveSounds = false, liveE
 
   elements.phaseLabel.textContent = stateLabels[state.state] || 'SYSTEM STATUS UNKNOWN';
   elements.zone.textContent = success ? 'SECTOR 22-D' : 'SECTOR 07';
-  elements.timer.textContent = active ? formatTime(state.remainingMs) : success ? 'SAFE' : failure ? 'LOST' : '--:--';
+  elements.timer.textContent = active ? formatTime(state.remainingMs) : failure ? 'LOST' : '--:--';
   elements.timer.setAttribute('aria-label', active ? `${formatTime(state.remainingMs)} remaining` : state.state);
-  elements.timerCaption.textContent = active ? 'TIME TO CONTAINMENT BREACH' : success ? 'BIOHAZARD LEVEL' : failure ? 'BIOHAZARD LEVEL' : 'SYSTEM STATUS';
-  elements.timerUnit.textContent = active ? 'MINUTES : SECONDS' : success ? 'STABLE' : failure ? 'CRITICAL' : 'AWAITING START';
+  elements.timerCaption.textContent = success ? 'TIME TO EVACUATE' : active ? 'TIME TO CONTAINMENT BREACH' : failure ? 'BIOHAZARD LEVEL' : 'SYSTEM STATUS';
+  elements.timerUnit.textContent = success
+    ? state.remainingMs > 0 ? 'RUN NOW!!' : 'RUN WINDOW ENDED'
+    : active ? 'MINUTES : SECONDS' : failure ? 'CRITICAL' : 'AWAITING START';
 
   if (state.state === 'IDLE') {
     elements.headline.innerHTML = 'CONTAINMENT<br>ISOLATION SYSTEM';
@@ -150,9 +153,10 @@ function renderState(state, authoritative = false, playLiveSounds = false, liveE
   terminal.classList.toggle('is-failure', failure);
   terminal.classList.toggle('is-matrix', matrixStage);
   terminal.classList.toggle('is-wire-stage', wireStage);
-  elements.circuitConsole.hidden = !(matrixStage || wireStage || success);
+  elements.circuitConsole.hidden = !(matrixStage || wireStage);
   elements.circuitConsole.classList.toggle('is-verified', verified);
-  elements.d5Board.hidden = !(wireStage || success);
+  elements.d5Board.hidden = !wireStage;
+  elements.successRoute.hidden = !success;
   elements.matrixOverallStatus.textContent = matrixStage ? 'OFFLINE' : verified ? 'VERIFIED' : 'OFFLINE';
   const channels = Array.isArray(state.channels) ? state.channels : [false, false, false];
   const onlineCount = verified ? 3 : channels.filter(Boolean).length;
@@ -216,6 +220,9 @@ function renderState(state, authoritative = false, playLiveSounds = false, liveE
   document.querySelectorAll('.gm-button').forEach((button) => {
     button.disabled = !socket || socket.readyState !== WebSocket.OPEN;
   });
+  document.querySelector('[data-event="SKIP_COUNTDOWN"]').disabled = !socket
+    || socket.readyState !== WebSocket.OPEN
+    || state.state !== 'COUNTDOWN';
   roundDurationInput.disabled = !socket || socket.readyState !== WebSocket.OPEN;
   if (authoritative) lastAuthoritativeState = state;
 }

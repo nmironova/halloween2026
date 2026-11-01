@@ -6,9 +6,10 @@ const { connectSerial } = require('./hardware/serial');
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
-const DEFAULT_GAME_DURATION_MS = 10 * 60 * 1000;
+const DEFAULT_GAME_DURATION_MS = 15 * 60 * 1000;
 const MAX_GAME_DURATION_MINUTES = 60;
-const START_COUNTDOWN_MS = 3 * 1000;
+const START_COUNTDOWN_MS = 30 * 1000;
+const SUCCESS_RUN_WINDOW_MS = 5 * 60 * 1000;
 const configuredPenaltySeconds = Number(process.env.WRONG_EVENT_PENALTY_SECONDS);
 const WRONG_EVENT_PENALTY_SECONDS = Number.isFinite(configuredPenaltySeconds) && configuredPenaltySeconds > 0
   ? configuredPenaltySeconds
@@ -35,6 +36,7 @@ function createInitialGame() {
     channels: [false, false, false],
     deadline: null,
     countdownDeadline: null,
+    successDeadline: null,
     roundDurationMs: DEFAULT_GAME_DURATION_MS,
     warning: null,
     message: 'AWAITING GAME MASTER AUTHORIZATION',
@@ -51,6 +53,8 @@ function getState(now = Date.now()) {
     ? Math.max(0, (game.countdownDeadline || now) - now)
     : ['MATRIX_STAGE', 'WIRE_STAGE'].includes(game.state)
       ? Math.max(0, (game.deadline || now) - now)
+      : game.state === 'SUCCESS'
+        ? Math.max(0, (game.successDeadline || now) - now)
       : 0;
 
   return {
@@ -72,9 +76,11 @@ function broadcastState(event = null) {
 
 function setGameState(state, message, event = null) {
   const previousState = game.state;
+  const now = Date.now();
   game.state = state;
   game.message = message;
-  game.updatedAt = Date.now();
+  game.updatedAt = now;
+  game.successDeadline = state === 'SUCCESS' ? now + SUCCESS_RUN_WINDOW_MS : null;
   game.warning = null;
   logEvent(`STATE ${previousState} -> ${state}: ${message}`);
   broadcastState(event);
@@ -123,6 +129,12 @@ function handleHardwareEvent(event, options = {}) {
       game.deadline = null;
       game.countdownDeadline = Date.now() + START_COUNTDOWN_MS;
       setGameState('COUNTDOWN', `${game.roundDurationMs / 60000} MINUTE ROUND ARMING`, normalizedEvent);
+      break;
+    case 'SKIP_COUNTDOWN':
+      if (game.state !== 'COUNTDOWN') return logEvent(`IGNORED ${normalizedEvent} in ${game.state}`);
+      game.countdownDeadline = null;
+      game.deadline = Date.now() + game.roundDurationMs;
+      setGameState('MATRIX_STAGE', 'CONTROL MATRIX OFFLINE - RECONSTRUCT CONTROL MATRIX', normalizedEvent);
       break;
     case 'RESET': {
       const previousState = game.state;
@@ -180,6 +192,7 @@ function handleHardwareEvent(event, options = {}) {
 const MIME_TYPES = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
+  '.jpg': 'image/jpeg',
   '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.mp3': 'audio/mpeg',
@@ -248,7 +261,12 @@ setInterval(() => {
     } else if (['MATRIX_STAGE', 'WIRE_STAGE'].includes(game.state) && game.deadline <= now) {
     game.deadline = null;
     setGameState('FAILURE', 'CONTAINMENT FAILURE - TIME EXPIRED');
-  } else if (['COUNTDOWN', 'MATRIX_STAGE', 'WIRE_STAGE'].includes(game.state)) {
+  } else if (['COUNTDOWN', 'MATRIX_STAGE', 'WIRE_STAGE'].includes(game.state)
+    || (game.state === 'SUCCESS' && game.successDeadline > now)) {
+    broadcastState();
+  } else if (game.state === 'SUCCESS' && game.successDeadline && game.successDeadline <= now) {
+    game.successDeadline = null;
+    game.updatedAt = now;
     broadcastState();
   }
 }, TICK_INTERVAL_MS);
